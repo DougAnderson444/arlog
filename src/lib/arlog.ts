@@ -1,6 +1,5 @@
 import Arweave from 'arweave';
 import { CONTRACT_ID, APP_WALLET, MAX_REQUEST } from '$lib/utils/constants';
-import { arConfig } from './config/index.js';
 
 let arweave;
 
@@ -8,14 +7,27 @@ let dev = import.meta.env.DEV || false;
 
 let contractID = !dev && CONTRACT_ID;
 
-export default class Arlog {
-	constructor(arConfig) {
-		this.arweave = Arweave.init(arConfig);
-	}
+interface TagFilter {
+  name: string;
+  values: string[];
+}
 
-    getArConfig() {
-        return arConfig;
-    };
+interface BlockFilter {
+  max: number;
+}
+
+interface ReqVariables {
+    owners: string; 
+  tags: TagFilter[];
+  blockFilter: BlockFilter;
+  first: number;
+  after?: string;
+}
+
+export default class Arlog {
+	constructor(arweave) {
+		this.arweave = arweave;
+	}
 
 	async load(keyfile) {
 		this.keyfile = keyfile;
@@ -28,7 +40,7 @@ export default class Arlog {
 			client: this.arweave,
 			payer: this.keyfile,
 			owner: this.ownerAddress
-		}); // generate a testWeave contractID
+		}); // generate a contractID
 		console.log('contractID deployed', { contractID });
 
 		const after = await this.arweave.transactions.getStatus(contractID);
@@ -36,26 +48,6 @@ export default class Arlog {
 
 		if (after.status !== 202) new Error('error, contract not deployed'); // TODO: handle better
 
-		let fin;
-
-		try {
-			console.log('Mining...');
-			await testWeave.mine(); // mine the contract
-			await testWeave.mine(); // mine the contract
-			console.log('Mined!');
-			fin = await this.arweave.transactions.getStatus(contractID);
-			console.log({ fin }); // this will return 202
-		} catch (error) {
-			console.error(error);
-			return `Error ${error}`;
-		}
-		try {
-			console.log(fin.confirmed.block_indep_hash);
-			const result = await this.arweave.blocks.get(fin.confirmed.block_indep_hash);
-			console.log({ result });
-		} catch (error) {
-			console.error(error);
-		}
 		return contractID;
 	}
 
@@ -65,13 +57,15 @@ export default class Arlog {
 		const height = networkInfo.height;
 
 		let variables: ReqVariables = {
-			owner: {
-				address: this.ownerAddress
-			},
+			owners: this.ownerAddress,
 			tags: [
+				// {
+				// 	name: 'App-Name',
+				// 	values: ['SmartWeaveContract']
+				// },
 				{
-					name: 'App-Name',
-					values: ['SmartWeaveAction']
+					name: 'Content-Type',
+					values: ['application/json']
 				}
 			],
 			blockFilter: {
@@ -89,33 +83,35 @@ export default class Arlog {
 		arweave: Arweave,
 		variables: ReqVariables
 	): Promise<GQLTransactionsResultInterface> {
-		const query = `query Transactions($tags: [TagFilter!]!, $blockFilter: BlockFilter!, $first: Int!, $after: String) {
-            transactions(tags: $tags, block: $blockFilter, first: $first, sort: HEIGHT_ASC, after: $after) {
-                pageInfo {
-                    hasNextPage
-                }
-                edges {
-                    node {
-                    id
-                    owner { address }
-                    recipient
-                    tags {
-                        name
-                        value
-                    }
-                    block {
-                        height
-                        id
-                        timestamp
-                    }
-                    fee { winston }
-                    quantity { winston }
-                    parent { id }
-                    }
-                    cursor
-                }
-            }
-	    }`;
+        		console.log({ owner: this.ownerAddress }, {variables});
+
+		const query = `query Transactions($owners: String!) {
+                        transactions(owners: [$owners]) {
+                        pageInfo {
+                            hasNextPage
+                        }
+                        edges {
+                            node {
+                            id
+                            owner { address }
+                            recipient
+                            tags {
+                                name
+                                value
+                            }
+                            block {
+                                height
+                                id
+                                timestamp
+                            }
+                            fee { winston }
+                            quantity { winston }
+                            parent { id }
+                            }
+                            cursor
+                        }
+                        }
+                    }`;
 
 		// hack because testweave looks at :1984/graphql instead of :3000/graphql
 		arweave = Arweave.init({
@@ -130,6 +126,7 @@ export default class Arlog {
 			query,
 			variables
 		});
+        		console.log({ response });
 
 		if (response.status !== 200) {
 			throw new Error(
