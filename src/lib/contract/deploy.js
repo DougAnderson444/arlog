@@ -10,6 +10,7 @@ export const deploy = async ({
 	owner,
 	latest = { ipfs: 'IPFS CID', arweave: 'Arweave Tx Id' } // optional init balance, else random owner amt
 }) => {
+	state.name = name;
 	state.owner = owner;
 	state.latest = latest; // { ipfs, arweave }
 	const source = src.default;

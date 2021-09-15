@@ -1,70 +1,145 @@
 import Arweave from 'arweave';
-import { CONTRACT_ID, APP_WALLET } from '$lib/utils/constants';
+import { CONTRACT_ID, APP_WALLET, MAX_REQUEST } from '$lib/utils/constants';
+import { arConfig } from './config/index.js';
 
-const testConfig = {
-	host: 'localhost',
-	port: 1984,
-	protocol: 'http',
-	timeout: 20000,
-	logging: false
-};
-const liveConfig = {
-	host: 'arweave.net'
-};
+let arweave;
 
 let dev = import.meta.env.DEV || false;
-let arConfig = dev ? testConfig : liveConfig;
-let arweave;
-let keyfile;
-let ownerAddress;
 
 let contractID = !dev && CONTRACT_ID;
 
 export default class Arlog {
-	constructor(client?: Arweave) {
-		this.arweave = client || Arweave.init(arConfig);
+	constructor(arConfig) {
+		this.arweave = Arweave.init(arConfig);
 	}
 
-	async load() {
-		// wallet?: keyfile, logID?: String
+    getArConfig() {
+        return arConfig;
+    };
 
-		if (dev) {
-			// init TestWeaveSDK on the top of arweave
-			const TestWeaveSDK = await import('testweave-sdk');
-			let testWeave = await TestWeaveSDK.default.init(this.arweave);
-			keyfile = testWeave.rootJWK;
-			ownerAddress = await this.arweave.wallets.getAddress(keyfile);
+	async load(keyfile) {
+		this.keyfile = keyfile;
+		this.ownerAddress = await this.arweave.wallets.getAddress(this.keyfile);
+	}
 
-			const { deploy } = await import('$lib/contract/deploy.js');
-			contractID = await deploy({ client: this.arweave, payer: keyfile, owner: ownerAddress }); // generate a testWeave contractID
-			console.log('contractID deployed', { contractID });
+	async deployContract() {
+		const { deploy } = await import('$lib/contract/deploy.js');
+		contractID = await deploy({
+			client: this.arweave,
+			payer: this.keyfile,
+			owner: this.ownerAddress
+		}); // generate a testWeave contractID
+		console.log('contractID deployed', { contractID });
 
-			const after = await this.arweave.transactions.getStatus(contractID);
-			console.log({ after }); // this will return 202
+		const after = await this.arweave.transactions.getStatus(contractID);
+		console.log({ after }); // this will return 202
 
-			if (after.status !== 202) new Error('error, contract not deployed'); // TODO: handle better
-			
-			let fin
+		if (after.status !== 202) new Error('error, contract not deployed'); // TODO: handle better
 
-			try {
-				console.log('Mining...');
-				await testWeave.mine(); // mine the contract
-				await testWeave.mine(); // mine the contract
-				console.log('Mined!');
-				fin = await this.arweave.transactions.getStatus(contractID);
-				console.log({ fin }); // this will return 202
-			} catch (error) {
-				console.error(error);
-				return `Error ${error}`;
-			}
-			try {
-				console.log(fin.confirmed.block_indep_hash)
-				const result = await this.arweave.blocks.get(fin.confirmed.block_indep_hash); 
-				console.log({result})
-			} catch (error) {
-				console.error(error)
-			}
-			return contractID;
+		let fin;
+
+		try {
+			console.log('Mining...');
+			await testWeave.mine(); // mine the contract
+			await testWeave.mine(); // mine the contract
+			console.log('Mined!');
+			fin = await this.arweave.transactions.getStatus(contractID);
+			console.log({ fin }); // this will return 202
+		} catch (error) {
+			console.error(error);
+			return `Error ${error}`;
 		}
+		try {
+			console.log(fin.confirmed.block_indep_hash);
+			const result = await this.arweave.blocks.get(fin.confirmed.block_indep_hash);
+			console.log({ result });
+		} catch (error) {
+			console.error(error);
+		}
+		return contractID;
+	}
+
+	async getAll() {
+		// assertLoaded()
+		const networkInfo = await this.arweave.network.getInfo();
+		const height = networkInfo.height;
+
+		let variables: ReqVariables = {
+			owner: {
+				address: this.ownerAddress
+			},
+			tags: [
+				{
+					name: 'App-Name',
+					values: ['SmartWeaveAction']
+				}
+			],
+			blockFilter: {
+				max: height
+			},
+			first: MAX_REQUEST
+		};
+		let transactions = await this.getNextPage(this.arweave, variables);
+		console.log({ transactions });
+		if (transactions.edges.length < 1) return false;
+		return transactions;
+	}
+
+	async getNextPage(
+		arweave: Arweave,
+		variables: ReqVariables
+	): Promise<GQLTransactionsResultInterface> {
+		const query = `query Transactions($tags: [TagFilter!]!, $blockFilter: BlockFilter!, $first: Int!, $after: String) {
+            transactions(tags: $tags, block: $blockFilter, first: $first, sort: HEIGHT_ASC, after: $after) {
+                pageInfo {
+                    hasNextPage
+                }
+                edges {
+                    node {
+                    id
+                    owner { address }
+                    recipient
+                    tags {
+                        name
+                        value
+                    }
+                    block {
+                        height
+                        id
+                        timestamp
+                    }
+                    fee { winston }
+                    quantity { winston }
+                    parent { id }
+                    }
+                    cursor
+                }
+            }
+	    }`;
+
+		// hack because testweave looks at :1984/graphql instead of :3000/graphql
+		arweave = Arweave.init({
+			host: 'localhost',
+			port: 3000,
+			protocol: 'http',
+			timeout: 20000,
+			logging: false
+		});
+
+		const response = await arweave.api.post('graphql', {
+			query,
+			variables
+		});
+
+		if (response.status !== 200) {
+			throw new Error(
+				`Unable to retrieve transactions. Arweave gateway responded with status ${response.status}.`
+			);
+		}
+
+		const data: GQLResultInterface = response.data;
+		const txs = data.data.transactions;
+
+		return txs;
 	}
 }
