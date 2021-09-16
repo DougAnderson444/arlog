@@ -12,6 +12,5 @@ export const deploy = async ({ client, payer, details }) => {
 	const source = src.default;
 	console.log({ client, payer, source, state });
 	const id = await createContract(client, payer, source, JSON.stringify(state));
-	console.log({ id });
 	return id;
 };
