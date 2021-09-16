@@ -23,11 +23,18 @@ export class Tester {
 		this.testWeave = await TestWeaveSDK.default.init(this.arweave);
 	};
 
-	getTestKeyfile = () => {
+	getTestKeyfile = async () => {
 		if (!this.testWeave) init();
 
 		// init TestWeaveSDK on the top of arweave
-		this.keyfile = this.testWeave.rootJWK;
+		// this.keyfile = this.testWeave.rootJWK;
+
+		this.keyfile = await this.arweave.wallets.generate();
+		const generatedAddr = await this.arweave.wallets.getAddress(this.keyfile);
+		await this.testWeave.drop(generatedAddr, '123456789012');
+		const generatedAddressBalance = await this.arweave.wallets.getBalance(generatedAddr); // returns 10000
+		await this.testWeave.mine();
+		console.log({ generatedAddressBalance });
 		return this.keyfile;
 	};
 
@@ -36,21 +43,27 @@ export class Tester {
 
 		let fin;
 
+		// Tx seem to be one behind, maybe we need 1+ cofirmations, so add another Tx first
+		const jkw = await this.arweave.wallets.generate();
+		const generatedAddr = await this.arweave.wallets.getAddress(jkw);
+		await this.testWeave.drop(generatedAddr, '69');
+
 		try {
 			console.log('Mining...');
 			await this.testWeave.mine(); // mine the contract
 			await this.testWeave.mine(); // mine the contract
 			console.log('Mined!');
-			fin = await this.arweave.transactions.getStatus(contractID);
-			console.log({ fin }); // this will return 202
 		} catch (error) {
 			console.error(error);
 			return `Error ${error}`;
 		}
 		try {
-			console.log(fin.confirmed.block_indep_hash);
-			const result = await this.arweave.blocks.get(fin.confirmed.block_indep_hash);
-			console.log({ result });
+			if (contractID) {
+				fin = await this.arweave.transactions.getStatus(contractID);
+				console.log({ fin }); // this will return 202
+				const result = await this.arweave.blocks.get(fin.confirmed.block_indep_hash);
+				console.log({ result });
+			}
 		} catch (error) {
 			console.error(error);
 		}
