@@ -1,6 +1,6 @@
 {
   "name": "arlog",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "scripts": {
     "dev": "svelte-kit dev --port=3456",
     "build": "svelte-kit build",
@@ -34,6 +34,7 @@
     "@fontsource/fira-mono": "^4.2.2",
     "@lukeed/uuid": "^2.0.0",
     "cookie": "^0.4.1",
-    "immortal-db": "^1.1.0"
+    "immortal-db": "^1.1.0",
+    "smartweave": "^0.4.45"
   }
 }
