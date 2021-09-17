@@ -46,7 +46,7 @@ export default class Arlog {
 
 	async write(ownerKeyfile, contractID, input, opts = {}) {
 		const { tags = [], target = null, winstonQty = null } = opts
-		let contractInteractionResult = await interactWrite(
+		let txid = await interactWrite(
 			this.arweave,
 			ownerKeyfile,
 			contractID,
@@ -56,14 +56,11 @@ export default class Arlog {
 			winstonQty
 		);
 
-		console.log({contractInteractionResult})
+		console.log({txid})
 
-		if (contractInteractionResult == 'error') return new Error('Error writing to contract');
+		if (!txid) return new Error('Error writing to contract');
 
-		return {
-			result: contractInteractionResult.result,
-			state: contractInteractionResult.state
-		};
+		return txid;
 	}
 
 	async getAddress(keyfile) {

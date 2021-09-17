@@ -18,8 +18,8 @@
 			latest
 		};
 
-		const { result, state } = await arlog.write(keyfile, contractID, input);
-		console.log({ result, state });
+		const txid = await arlog.write(keyfile, contractID, input);
+		console.log({ txid });
 	}
 </script>
 
