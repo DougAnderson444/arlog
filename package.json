@@ -1,6 +1,6 @@
 {
-  "name": "arlog",
-  "version": "0.0.2",
+  "name": "@douganderson444/arlog",
+  "version": "0.0.3",
   "scripts": {
     "dev": "svelte-kit dev --port=3456",
     "build": "svelte-kit build",
