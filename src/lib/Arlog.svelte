@@ -1,95 +1,126 @@
 <script lang="ts">
-	import Arweave from 'arweave';
-
 	import { onMount } from 'svelte';
 
 	import Arlog from './arlog';
-	import { Tester } from './config/index.js';
-	import { readContract } from 'smartweave';
+	import { startWeave, TestNet } from './config/index.js';
 	import ReadContract from './ReadContract.svelte';
 	import UpdateLog from './UpdateLog.svelte';
 
-	const dev = import.meta.env.DEV || false;
+	let dev: boolean = import.meta.env.DEV || false;
+	const LIVE_NET: string = 'LIVE_NET';
+	const DEV_NET: string = 'DEV_NET';
+	let selectedNetwork = dev ? DEV_NET : LIVE_NET;
 
-	let KEYFILE = 'keyfile';
-	let DB_KEYS = [KEYFILE];
+	let KEYFILE = {
+		DEV_NET: '',
+		LIVE_NET: ''
+	};
 
-	let network = 'dev';
-	let wallet = '';
-	let value = 'Some value';
+	let DB_KEY = {
+		DEV_NET,
+		LIVE_NET
+	};
+
 	let arlog, allLogs, loaded;
 	let contractIDs = [];
-	let keyfile;
 	let pendingContractDeployment;
+	let ownerAddress = '';
 	let resolvedBalance;
+	let balance = 'Loading ';
 
 	// for testing
-	let tester;
-	let clearDB;
-	let ownerAddress = '';
+	let testNet;
+	let clearDB, load;
 
 	onMount(async () => {
-		// setup dev env
-		tester = new Tester();
-		await tester.init();
-
-		// use dev env to setup arlog
-		arlog = new Arlog(tester.arweave);
-
 		const { ImmortalDB } = await import('immortal-db');
-		let savedKeyfile = await ImmortalDB.get(KEYFILE);
 
-		// check for cached accounts
-		if (savedKeyfile) keyfile = JSON.parse(savedKeyfile);
-		else keyfile = await tester.getTestKeyfile();
+		load = async () => {
+			console.log(`loading ${selectedNetwork}`);
 
-		// cache it
-		await ImmortalDB.set(KEYFILE, JSON.stringify(keyfile));
+			let arweaveInstance;
 
-		ownerAddress = await arlog.getAddress(keyfile);
+			let savedKeyfile = await ImmortalDB.get(DB_KEY[selectedNetwork]);
+			if (savedKeyfile) KEYFILE[selectedNetwork] = JSON.parse(savedKeyfile);
 
-		loaded = true;
+			if (selectedNetwork == DEV_NET) {
+				testNet = new TestNet();
+				await testNet.init();
+
+				arweaveInstance = testNet.arweave;
+				if (!KEYFILE[selectedNetwork]) KEYFILE[selectedNetwork] = await testNet.getTestKeyfile();
+			} else {
+				arweaveInstance = startWeave();
+				if (!KEYFILE[selectedNetwork]) {
+					KEYFILE[selectedNetwork] = await arlog.generateKeyfile();
+				}
+				console.log(`live keyfile ${KEYFILE[selectedNetwork]}`);
+			}
+
+			// use dev env to setup arlog
+			arlog = new Arlog(arweaveInstance);
+
+			await ImmortalDB.set(DB_KEY[selectedNetwork], JSON.stringify(KEYFILE[selectedNetwork]));
+			ownerAddress = await arlog.getAddress(KEYFILE[selectedNetwork]);
+			ownerAddress = ownerAddress;
+			console.log(`ownerAddress ${ownerAddress}`);
+		};
 
 		clearDB = async () => {
-			await ImmortalDB.remove(KEYFILE);
-			let savedKeyfile = await ImmortalDB.get(KEYFILE);
+			await ImmortalDB.remove(DB_KEY[selectedNetwork]);
+			KEYFILE[selectedNetwork] = null;
 		};
+
+		await load();
+		loaded = true;
 	});
 
-	$: loaded && showLogs() && showBalance();
-
-	$: balance = resolvedBalance;
+	$: loaded && showLogs() && showBalance(); // show logs and balance after loaded
 
 	async function showLogs() {
-		await tester.doMining();
+		await testNet.doMining();
 
 		// show allLogs owned by this wallet
 		const logsPromise = await arlog.list(ownerAddress);
 		allLogs = logsPromise;
 	}
 
+	const showBalance = async () => {
+		let pendingBalance = arlog.arweave.wallets.getBalance(ownerAddress);
+		let rB = await pendingBalance;
+		balance = rB;
+	};
+
 	async function createNewLog() {
-		pendingContractDeployment = arlog.createNewLog(keyfile);
+		pendingContractDeployment = arlog.createNewLog(KEYFILE[selectedNetwork]);
 		const contractDeployed = await pendingContractDeployment;
 		contractIDs = [...contractIDs, contractDeployed];
 		pendingContractDeployment = false;
-		await tester.doMining(contractDeployed);
+		await testNet.doMining(contractDeployed);
 		showLogs();
 	}
-	const showBalance = async () => {
-		let pendingBalance = arlog.arweave.wallets.getBalance(ownerAddress);
-		resolvedBalance = await pendingBalance;
-		return resolvedBalance;
-	};
 </script>
 
+<header>
+	<div class="corner">
+		<!-- Left Corner -->
+	</div>
+	<div class="corner">
+		<select bind:value={selectedNetwork} on:change={load}>
+			<option value={DEV_NET}>Dev</option>
+			<option value={LIVE_NET}>Live</option>
+		</select>
+	</div>
+</header>
 <div>
 	{#if arlog}
 		{#if ownerAddress}
-			<h2>Loaded Keyfile:<br /> {ownerAddress}<br /> ({balance}winstons)</h2>
-			<!-- {#if clearDB}
+			<h2>
+				{selectedNetwork == DEV_NET ? '(Dev) ' : 'Live '}Keyfile: {ownerAddress} ({balance} winstons)
+			</h2>
+			{#if clearDB}
 				<button on:click={clearDB}>Delete</button>
-			{/if} -->
+			{/if}
 			<br />
 		{:else}
 			<h2>Loading wallet...</h2>
@@ -100,9 +131,13 @@
 			{#each allLogs.edges as { node }}
 				<li><a href="http://localhost:1984/{node.id}/" target="_blank">⭷{node.id}</a><br /></li>
 				<ReadContract contractID={node.id} {arlog} /><br />
-				- Update this log: <UpdateLog contractID={node.id} {arlog} {keyfile} />
+				- Update this log: <UpdateLog
+					contractID={node.id}
+					{arlog}
+					keyfile={KEYFILE[selectedNetwork]}
+				/>
 			{/each}
-		{:else if !pendingContractDeployment && keyfile}
+		{:else if !pendingContractDeployment && KEYFILE[selectedNetwork]}
 			<button on:click={createNewLog}>No logs. Create one?</button>
 		{:else}
 			Creating your Log on the blockchain...
@@ -118,4 +153,29 @@
 </div>
 
 <style>
+	header {
+		display: flex;
+		justify-content: space-between;
+		width: 100%;
+	}
+
+	.corner {
+		width: 10em;
+		height: 3em;
+		text-align: center;
+	}
+
+	.corner a {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		height: 100%;
+	}
+
+	.corner img {
+		width: 2em;
+		height: 2em;
+		object-fit: contain;
+	}
 </style>

@@ -67,6 +67,10 @@ export default class Arlog {
 		return await this.arweave.wallets.getAddress(keyfile);
 	}
 
+	async generateKeyfile() {
+		return await this.arweave.wallets.generate();
+	}
+
 	async deployContract(payer, {name = 'myArLog', owner = ''}) {
 		const { deploy } = await import('$lib/contract/deploy.js');
 		owner = owner || await this.getAddress(payer);

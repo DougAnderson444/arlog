@@ -12,7 +12,11 @@ export const liveConfig = {
 	host: 'arweave.net'
 };
 
-export class Tester {
+export const startWeave = () => {
+	return Arweave.init(liveConfig);
+};
+
+export class TestNet {
 	constructor() {
 		this.arweave = Arweave.init(testConfig);
 	}
