@@ -38,7 +38,7 @@ export class Tester {
 		return this.keyfile;
 	};
 
-	doMining = async (contractID) => {
+	doMining = async (contractID = '') => {
 		if (!this.testWeave) init();
 
 		let fin;
@@ -46,11 +46,11 @@ export class Tester {
 		// Tx seem to be one behind, maybe we need 1+ cofirmations, so add another Tx first
 		const jkw = await this.arweave.wallets.generate();
 		const generatedAddr = await this.arweave.wallets.getAddress(jkw);
-		await this.testWeave.drop(generatedAddr, '69');
 
 		try {
 			console.log('Mining...');
 			await this.testWeave.mine(); // mine the contract
+			await this.testWeave.drop(generatedAddr, '69');
 			await this.testWeave.mine(); // mine the contract
 			console.log('Mined!');
 		} catch (error) {

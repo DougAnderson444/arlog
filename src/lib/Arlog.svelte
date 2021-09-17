@@ -6,6 +6,8 @@
 	import Arlog from './arlog';
 	import { Tester } from './config/index.js';
 	import { readContract } from 'smartweave';
+	import ReadContract from './ReadContract.svelte';
+	import UpdateLog from './UpdateLog.svelte';
 
 	const dev = import.meta.env.DEV || false;
 
@@ -15,7 +17,7 @@
 	let network = 'dev';
 	let wallet = '';
 	let value = 'Some value';
-	let log, logs, loaded;
+	let arlog, allLogs, loaded;
 	let contractIDs = [];
 	let keyfile;
 	let pendingContractDeployment;
@@ -24,7 +26,7 @@
 	// for testing
 	let tester;
 	let clearDB;
-	let latest;
+	let ownerAddress = '';
 
 	onMount(async () => {
 		// setup dev env
@@ -32,7 +34,7 @@
 		await tester.init();
 
 		// use dev env to setup arlog
-		log = new Arlog(tester.arweave);
+		arlog = new Arlog(tester.arweave);
 
 		const { ImmortalDB } = await import('immortal-db');
 		let savedKeyfile = await ImmortalDB.get(KEYFILE);
@@ -41,40 +43,33 @@
 		if (savedKeyfile) keyfile = JSON.parse(savedKeyfile);
 		else keyfile = await tester.getTestKeyfile();
 
-		// load the keyfile into this log
-		const loadingPromise = await log.load(keyfile);
+		// cache it
+		await ImmortalDB.set(KEYFILE, JSON.stringify(keyfile));
+
+		ownerAddress = await arlog.getAddress(keyfile);
+
 		loaded = true;
 
-		// cache it
-		await ImmortalDB.set(KEYFILE, JSON.stringify(log.keyfile));
-
 		clearDB = async () => {
-			console.log('Clearing', { KEYFILE });
 			await ImmortalDB.remove(KEYFILE);
-			console.log('Cleared', { KEYFILE });
 			let savedKeyfile = await ImmortalDB.get(KEYFILE);
-			console.log('savedKeyfile', { savedKeyfile });
 		};
 	});
 
 	$: loaded && showLogs() && showBalance();
-	$: logs && showLatest();
 
 	$: balance = resolvedBalance;
 
 	async function showLogs() {
-		await tester.doMining(false);
+		await tester.doMining();
 
-		// show all logs owned by this wallet
-		const logsPromise = await log.getAll();
-		logs = logsPromise;
-
-		let lasttransactionId = await log.arweave.wallets.getLastTransactionID(log.ownerAddress);
-		console.log({ lasttransactionId });
+		// show allLogs owned by this wallet
+		const logsPromise = await arlog.list(ownerAddress);
+		allLogs = logsPromise;
 	}
 
-	async function deploy() {
-		pendingContractDeployment = log.deployContract();
+	async function createNewLog() {
+		pendingContractDeployment = arlog.createNewLog(keyfile);
 		const contractDeployed = await pendingContractDeployment;
 		contractIDs = [...contractIDs, contractDeployed];
 		pendingContractDeployment = false;
@@ -82,57 +77,41 @@
 		showLogs();
 	}
 	const showBalance = async () => {
-		console.log('getting balance');
-		let pendingBalance = log.arweave.wallets.getBalance(log.ownerAddress);
+		let pendingBalance = arlog.arweave.wallets.getBalance(ownerAddress);
 		resolvedBalance = await pendingBalance;
 		return resolvedBalance;
-	};
-
-	const showLatest = async () => {
-		console.log(logs.edges);
-		let latestPromise = await readContract(log.arweave, logs.edges[0].node.id);
-		console.log(latestPromise);
-		latest = latestPromise.latest;
 	};
 </script>
 
 <div>
-	Input something, convert it IPFS and save it to Arlog <br />
-	{#if log && log.ownerAddress}
-		<br />Paying with: {log.ownerAddress} ({balance}winstons)
-		{#if clearDB}
-			<button on:click={clearDB}>Delete</button>
+	{#if arlog}
+		{#if ownerAddress}
+			<h2>Loaded Keyfile:<br /> {ownerAddress}<br /> ({balance}winstons)</h2>
+			<!-- {#if clearDB}
+				<button on:click={clearDB}>Delete</button>
+			{/if} -->
+			<br />
+		{:else}
+			<h2>Loading wallet...</h2>
 		{/if}
-		<br /><br />
-	{/if}
-	{#if logs && logs.edges.length > 0}
-		Latest values published to Contract:
-		<ul>
-			{#each logs.edges as { node }}
+
+		<h2>List all owner contracts (ownerAddress)</h2>
+		{#if allLogs && allLogs.edges && allLogs.edges.length > 0}
+			{#each allLogs.edges as { node }}
 				<li><a href="http://localhost:1984/{node.id}/" target="_blank">⭷{node.id}</a><br /></li>
+				<ReadContract contractID={node.id} {arlog} /><br />
+				- Update this log: <UpdateLog contractID={node.id} {arlog} {keyfile} />
 			{/each}
-		</ul>
-		{#if latest}
-			Latest values:
-			{#each [...Object.entries(latest)] as [key, value]}
-				<li>
-					{key}:
-					<a href="http://localhost:1984/{value}/" target="_blank">⭷{value}</a><br />
-				</li>
-			{/each}
+		{:else if !pendingContractDeployment && keyfile}
+			<button on:click={createNewLog}>No logs. Create one?</button>
+		{:else}
+			Creating your Log on the blockchain...
 		{/if}
-	{:else if !pendingContractDeployment}
-		<button on:click={deploy}>Create new log?</button>
 	{:else}
-		Saving Log File to blockchain...
+		<p>Loading Arlog...</p>
 	{/if}
 
 	<!-- {#if log} -->
-
-	<div>
-		<br /><input {value} /> <br />
-	</div>
-	<br />
 	<!-- <br />
 	✔️ Saving & Publishig to:
 	<a href="http://localhost:1984/{contractID}/" target="_blank">Arweave Permaweb ⭷</a> -->

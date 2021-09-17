@@ -1,4 +1,5 @@
 import Arweave from 'arweave';
+import { readContract, interactWrite, interactWriteDryRun } from 'smartweave';
 import { CONTRACT_ID, APP_WALLET, MAX_REQUEST } from '$lib/utils/constants';
 
 let arweave;
@@ -29,19 +30,55 @@ export default class Arlog {
 		this.arweave = arweave;
 	}
 
-	async load(keyfile) {
-		this.keyfile = keyfile;
-		this.ownerAddress = await this.arweave.wallets.getAddress(this.keyfile);
+	async read(contractID) {
+		return await readContract(this.arweave, contractID);
 	}
 
-	async deployContract() {
+	async createNewLog(ownerKeyfile, opts = {}) {
+		return await this.deployContract(ownerKeyfile, opts);
+	}
+
+	pickNameFromList(contractStates, namespace) {
+		const contractState = contractStates.find((contractState) => contractState.name == namespace);
+
+		return contractState;
+	}
+
+	async write(ownerKeyfile, contractID, input, opts = {}) {
+		const { tags = [], target = null, winstonQty = null } = opts
+		let contractInteractionResult = await interactWrite(
+			this.arweave,
+			ownerKeyfile,
+			contractID,
+			input,
+			tags,
+			target,
+			winstonQty
+		);
+
+		console.log({contractInteractionResult})
+
+		if (contractInteractionResult == 'error') return new Error('Error writing to contract');
+
+		return {
+			result: contractInteractionResult.result,
+			state: contractInteractionResult.state
+		};
+	}
+
+	async getAddress(keyfile) {
+		return await this.arweave.wallets.getAddress(keyfile);
+	}
+
+	async deployContract(payer, {name = 'myArLog', owner = ''}) {
 		const { deploy } = await import('$lib/contract/deploy.js');
+		owner = owner || await this.getAddress(payer);
 		contractID = await deploy({
 			client: this.arweave,
-			payer: this.keyfile,
+			payer,
 			details: {
-				name: 'myArLog',
-				owner: this.ownerAddress,
+				name,
+				owner,
 				latest: {
 					ipfs: 'generated IPFS CID for the data',
 					arweave: 'generated Arweave Tx Id for the data'
@@ -53,23 +90,23 @@ export default class Arlog {
 		const after = await this.arweave.transactions.getStatus(contractID);
 		console.log({ after }); // this will return 202
 
-		if (after.status !== 202) new Error('error, contract not deployed'); // TODO: handle better
+		if (after.status !== 202) return new Error('error, contract not deployed'); // TODO: handle better
 
 		return contractID;
 	}
 
-	async getAll() {
+	async list(owner) {
 		// assertLoaded()
 		const networkInfo = await this.arweave.network.getInfo();
 		const height = networkInfo.height;
 
 		let variables: ReqVariables = {
-			owners: this.ownerAddress,
+			owners: owner,
 			tags: [
 				{
 					name: 'App-Name',
 					values: ['SmartWeaveContract']
-				},
+				}
 				// doesnt work for some strange reason in GQL
 				// {
 				// 	name: "Content-Type",
@@ -111,15 +148,6 @@ export default class Arlog {
                         }
                     }`;
 
-		// hack because testweave looks at :1984/graphql instead of :3000/graphql
-		// arweave = Arweave.init({
-		// 	host: 'localhost',
-		// 	port: 3000,
-		// 	protocol: 'http',
-		// 	timeout: 20000,
-		// 	logging: false
-		// });
-
 		const response = await arweave.api.post('graphql', {
 			query,
 			variables
@@ -137,3 +165,5 @@ export default class Arlog {
 		return txs;
 	}
 }
+
+export class Log {}
