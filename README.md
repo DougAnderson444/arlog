@@ -6,6 +6,32 @@ Demo uses ArLog to point to root CID of IPFS Merkle DAG, which can be peered by 
 
 Under the hood, ArLog takes your data (root CID), sends the CID to the smart contract, and if it was sent by the Arweave keyfile owner, adds it to the owner's log.
 
+## Table of Contents
+
+- [Background](#background)
+- [Install](#install)
+- [Usage](#usage)
+	- [Demo](#demo)
+- [Badge](#badge)
+- [Example Readmes](#example-readmes)
+- [Related Efforts](#related-efforts)
+- [Maintainers](#maintainers)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Background
+
+So, you want to save your app to Web3, eh? What about updates? Well, you'd have to send all your contacts a brand new link.
+
+ArLog solves this problem by making the LINK permanent (and persistent) and that LINK points to the latest value, whether it is:
+
+- an IPFS CID
+- an Arweave data Transaction ID
+- a Solana address
+- ...or whatever, really
+
+## Install
+
 ```
 npm install github:@douganderson444/arlog
 ```
@@ -46,6 +72,14 @@ const finished = await arlog.write(ownerKeyfile, contractID, input, { tags = [],
 
 ```
 
+### Demo
+
+To run the demo, just launch the svelte app
+
+```
+npm run dev
+```
+
 ## API
 
 #### `const log = new Arlog(arweaveClientInstance: Arweave)`
@@ -68,10 +102,16 @@ Returns a contractID for the newly created and deployed owner keyfile
 
 Program is a SmartWeave smart contract, written in JS.
 
-## Demo
+## Contributing
 
-To run the demo, just launch the svelte app
+See [the contributing file](CONTRIBUTING.md)!
 
-```
-npm run dev
-```
+PRs accepted.
+
+Small note: If editing the Readme, please conform to the [standard-readme](https://github.com/RichardLitt/standard-readme) specification.
+
+
+
+## License
+
+[MIT © Doug Anderson (aka @douganderson444)](./LICENSE)
