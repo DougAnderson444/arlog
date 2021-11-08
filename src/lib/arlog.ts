@@ -2,6 +2,9 @@ import Arweave from 'arweave';
 import { readContract, interactWrite, interactWriteDryRun } from 'smartweave';
 import { CONTRACT_ID, APP_WALLET, MAX_REQUEST } from '$lib/utils/constants';
 
+import { SmartWeaveWebFactory, LoggerFactory } from "redstone-smartweave";
+
+
 let arweave;
 
 let dev = import.meta.env.DEV || false;
@@ -28,6 +31,7 @@ interface ReqVariables {
 export default class Arlog {
 	constructor(arweave) {
 		this.arweave = arweave;
+		this.smartweave = SmartWeaveWebFactory.memCached(arweave);
 	}
 
 	async read(contractID) {
@@ -45,7 +49,7 @@ export default class Arlog {
 	}
 
 	async write(ownerKeyfile, contractID, input, opts = {}) {
-		const { tags = [], target = null, winstonQty = null } = opts
+		const { tags = [], target = null, winstonQty = null } = opts;
 		let txid = await interactWrite(
 			this.arweave,
 			ownerKeyfile,
@@ -56,7 +60,7 @@ export default class Arlog {
 			winstonQty
 		);
 
-		console.log({txid})
+		console.log({ txid });
 
 		if (!txid) return new Error('Error writing to contract');
 
@@ -71,20 +75,28 @@ export default class Arlog {
 		return await this.arweave.wallets.generate();
 	}
 
-	async deployContract(payer, {name = 'myArLog', owner = ''}) {
+	async deployContract(
+		payer,
+		{
+			name = 'myArLog',
+			owner = '',
+			latest = {
+				ipfs: 'QmWB4HTz8G9RQeNumjFqHeHD7ziVkC3bfxWe37oEE75LZv',
+				arweave: 'generated Arweave Tx Id for the data'
+			}
+		}
+	) {
 		const { deploy } = await import('$lib/contract/deploy.js');
-		owner = owner || await this.getAddress(payer);
+		owner = owner || (await this.getAddress(payer));
 		contractID = await deploy({
 			client: this.arweave,
 			payer,
 			details: {
 				name,
 				owner,
-				latest: {
-					ipfs: 'generated IPFS CID for the data',
-					arweave: 'generated Arweave Tx Id for the data'
-				}
-			}
+				latest
+			},
+			smartweave: this.smartweave
 		}); // generate a contractID
 		console.log('contractID deployed', { contractID });
 
@@ -156,7 +168,7 @@ export default class Arlog {
 
 		if (response.status !== 200) {
 			throw new Error(
-				`Unable to retrieve transactions. Arweave gateway responded with status ${response.status}.`
+				`ArLog Error: Unable to retrieve transactions. Arweave gateway responded with status ${response.status}.`
 			);
 		}
 
@@ -166,5 +178,3 @@ export default class Arlog {
 		return txs;
 	}
 }
-
-export class Log {}

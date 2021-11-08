@@ -1,8 +1,10 @@
 <script>
-	import { onMount } from 'svelte';
+	import { onMount, createEventDispatcher } from 'svelte';
 	export let contractID;
 	export let arlog;
 	export let keyfile;
+
+	const dispatch = createEventDispatcher();
 
 	let display = '';
 	let value = 'Enter new value here';
@@ -11,8 +13,8 @@
 
 	async function update() {
 		let latest = {};
-		latest['ipfs'] = 'ipfs changed to ' + value;
-		latest['arweave'] = 'arweave changed to ' + value;
+		latest['ipfs'] = value;
+		latest['arweave'] = value;
 		let input = {
 			function: 'Update',
 			latest
@@ -20,6 +22,7 @@
 
 		const txid = await arlog.write(keyfile, contractID, input);
 		console.log({ txid });
+		dispatch('updated', txid);
 	}
 </script>
 

@@ -1,12 +1,50 @@
+<!-- <script context="module">
+	/**
+	 * @type {import('@sveltejs/kit').Load}
+	 */
+	export async function load({ page, fetch, session, stuff }) {
+		const url = `/blog/${page.params.slug}.json`;
+		const res = await fetch(url);
+
+		if (res.ok) {
+			return {
+				props: {
+					article: await res.json()
+				}
+			};
+		}
+
+		return {
+			status: res.status,
+			error: new Error(`Could not load ${url}`)
+		};
+	}
+</script> -->
 <script lang="ts">
 	import Header from '$lib/header/Header.svelte';
 	import '../app.css';
+
+	import { onMount } from 'svelte';
+	import ArLoad from '$lib/ArLoad.svelte';
+
+	let mounted;
+	let loaded;
+
+	onMount(async () => {
+		console.log('Layout mounted');
+		mounted = true;
+	});
 </script>
 
 <Header />
-
 <main>
-	<slot />
+	{#if mounted}
+		<ArLoad bind:loaded />
+		<!-- Otherwise the child components mount first, and there's no way to easily pass down -->
+		{#if loaded}
+			<slot />
+		{/if}
+	{/if}
 </main>
 
 <footer>

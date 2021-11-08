@@ -2,6 +2,8 @@
 
 Append only log of data in Arweave. 
 
+Deploy with ArLog if you want to update your website in the future.
+
 Demo uses ArLog to point to root CID of IPFS Merkle DAG, which can be peered by either you or pinned on Arweave as well. Maintains a chain of CID update for your records and convenience.
 
 Under the hood, ArLog takes your data (root CID), sends the CID to the smart contract, and if it was sent by the Arweave keyfile owner, adds it to the owner's log.
@@ -12,10 +14,7 @@ Under the hood, ArLog takes your data (root CID), sends the CID to the smart con
 - [Install](#install)
 - [Usage](#usage)
 	- [Demo](#demo)
-- [Badge](#badge)
-- [Example Readmes](#example-readmes)
-- [Related Efforts](#related-efforts)
-- [Maintainers](#maintainers)
+- [API](#api)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -29,6 +28,13 @@ ArLog solves this problem by making the LINK permanent (and persistent) and that
 - an Arweave data Transaction ID
 - a Solana address
 - ...or whatever, really
+
+## ArLog Deploy Protocol: How it Works
+
+1. ArLog takes your first deployment and creates a contractID
+2. Arlog deploy --wrapper embeds this contract ID in an HTML Wrapper. Otherwise go to FQDN/contractID to get the latest values  
+3. ArLog looks up the latest IPFS value if it exists/loads, then falls back to the ArWeave Tx
+4. The data is then displayed if it is HTML
 
 ## Install
 
@@ -110,7 +116,9 @@ PRs accepted.
 
 Small note: If editing the Readme, please conform to the [standard-readme](https://github.com/RichardLitt/standard-readme) specification.
 
+### Dev Notes
 
+In order to develop, you'll need to run testweave-docker on your local machine. Be sure to `docker system prune` if you run into issues when trying to mine locally.
 
 ## License
 

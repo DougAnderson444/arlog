@@ -8,6 +8,15 @@ const testConfig = {
 	timeout: 20000,
 	logging: false
 };
+
+const redstoneConfig = {
+	host: 'dh48zl0solow5.cloudfront.net',
+	port: 443,
+	protocol: 'https',
+	timeout: 20000,
+	logging: false
+};
+
 export const liveConfig = {
 	host: 'arweave.net'
 };
@@ -24,17 +33,23 @@ export class TestNet {
 	init = async () => {
 		// init TestWeaveSDK on the top of arweave
 		const TestWeaveSDK = await import('testweave-sdk');
-		this.testWeave = await TestWeaveSDK.default.init(this.arweave);
+		try {
+			this.testWeave = await TestWeaveSDK.init(this.arweave); // TODO default import issue?
+		} catch (error) {}
+		try {
+			this.testWeave = await TestWeaveSDK.default.init(this.arweave); // TODO default import issue?
+		} catch (error) {}
 	};
 
 	getTestKeyfile = async () => {
-		if (!this.testWeave) init();
+		if (!this.testWeave) await init();
 
 		// init TestWeaveSDK on the top of arweave
 		// this.keyfile = this.testWeave.rootJWK;
 
 		this.keyfile = await this.arweave.wallets.generate();
 		const generatedAddr = await this.arweave.wallets.getAddress(this.keyfile);
+		console.log(`AirDrop for ${generatedAddr}`);
 		await this.testWeave.drop(generatedAddr, '123456789012');
 		const generatedAddressBalance = await this.arweave.wallets.getBalance(generatedAddr); // returns 10000
 		await this.testWeave.mine();
