@@ -1,8 +1,8 @@
 {
 	"name": "@douganderson444/arlog",
-	"version": "0.0.4",
+	"version": "0.0.5",
 	"scripts": {
-		"dev-3456": "svelte-kit dev --port=3456",
+		"dev": "svelte-kit dev --port=34560",
 		"build": "svelte-kit build",
 		"preview": "svelte-kit preview --port=3457 -- --open",
 		"check": "svelte-check --tsconfig ./tsconfig.json",
@@ -20,6 +20,7 @@
 		"eslint": "^7.22.0",
 		"eslint-config-prettier": "^8.1.0",
 		"eslint-plugin-svelte3": "^3.2.0",
+		"iframe-wallet": "file:../iframe-wallet",
 		"prettier": "~2.2.1",
 		"prettier-plugin-svelte": "^2.2.0",
 		"rollup-plugin-string": "^3.0.0",
@@ -37,6 +38,6 @@
 		"@lukeed/uuid": "^2.0.0",
 		"cookie": "^0.4.1",
 		"immortal-db": "^1.1.0",
-		"redstone-smartweave": "^0.3.10-alpha.13"
+		"redstone-smartweave": "^0.3.10-alpha.19"
 	}
 }
