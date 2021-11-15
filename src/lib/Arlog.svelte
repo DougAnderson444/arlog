@@ -11,11 +11,6 @@
 	const DEV_NET: string = 'DEV_NET';
 	let selectedNetwork;
 
-	let KEYFILE = {
-		DEV_NET: '',
-		LIVE_NET: ''
-	};
-
 	const DB_NET_KEY = {
 		DEV_NET,
 		LIVE_NET
@@ -24,60 +19,55 @@
 	const DB_SELECTED_NETWORK = 'DB_SELECTED_NETWORK';
 
 	let arlog, allLogs;
-	let loaded;
+	let arLogLoaded;
 	let contractIDs = [];
 	let pendingContractDeployment;
-	let ownerAddress = '';
+	let ownerAddress;
 	let resolvedBalance;
-	let balance = 'Loading ';
-	let showBalance;
+	let balance;
 
 	// for testing
 	let testNet;
-	let clearDB, load, refresh, cacheNetworkSelection;
+	let load, refresh, cacheNetworkSelection;
+	let configArweaveWallet;
+	export let portal;
+
+	$: if (portal && arLogLoaded && configArweaveWallet) configArweaveWallet();
 
 	onMount(async () => {
 		const { ImmortalDB } = await import('immortal-db');
 
+		configArweaveWallet = async () => {
+			// connection request, ArConnect API
+			await window.arweaveWallet.connect(['ACCESS_ADDRESS', 'SIGN_TRANSACTION'], {
+				name: 'ArLog' // optional application name
+			});
+			ownerAddress = await window.arweaveWallet.getActiveAddress();
+			refresh();
+		};
+
 		load = async () => {
+			if (!window.arweaveWallet) {
+				alert('No Arweave Wallet available (yet?)');
+				return;
+			}
+
 			await cacheNetworkSelection();
 			selectedNetwork = await ImmortalDB.get(DB_SELECTED_NETWORK);
 			selectedNetwork = selectedNetwork || (dev ? DEV_NET : LIVE_NET);
 
 			let arweaveInstance;
 
-			let savedKeyfile = await ImmortalDB.get(DB_NET_KEY[selectedNetwork]);
-			if (savedKeyfile) KEYFILE[selectedNetwork] = JSON.parse(savedKeyfile);
-
 			if (selectedNetwork == DEV_NET) {
 				testNet = new TestNet();
 				await testNet.init();
-
-				arweaveInstance = testNet.arweave;
-				console.log({ selectedNetwork });
-				if (!KEYFILE[selectedNetwork]) KEYFILE[selectedNetwork] = await testNet.getTestKeyfile();
-			} else {
-				arweaveInstance = startWeave();
-				if (window.arweaveWallet) {
-					await window.arweaveWallet.connect(['ACCESS_ADDRESS'], {
-						name: 'ArLog' // optional application name
-					});
-					window.addEventListener('arweaveWalletLoaded', async () => {
-						/** Handle ArConnect load event **/
-						ownerAddress = await window.arweaveWallet.getActiveAddress();
-					});
-				} else if (!KEYFILE[selectedNetwork]) {
-					KEYFILE[selectedNetwork] = await arlog.generateKeyfile();
-				}
 			}
 
+			arweaveInstance = testNet ? testNet.arweave : startWeave();
+			console.log({ arweaveInstance });
 			// use dev env to setup arlog
 			arlog = new Arlog(arweaveInstance);
-
-			await ImmortalDB.set(DB_NET_KEY[selectedNetwork], JSON.stringify(KEYFILE[selectedNetwork]));
-			ownerAddress = ownerAddress || (await arlog.getAddress(KEYFILE[selectedNetwork]));
-			ownerAddress = ownerAddress;
-			refresh();
+			console.log({ arlog });
 		};
 
 		cacheNetworkSelection = async () => {
@@ -90,13 +80,8 @@
 			showLogs();
 		};
 
-		clearDB = async () => {
-			await ImmortalDB.remove(DB_NET_KEY[selectedNetwork]);
-			KEYFILE[selectedNetwork] = null;
-		};
-
 		await load();
-		loaded = true;
+		arLogLoaded = true;
 	});
 
 	async function showLogs() {
@@ -108,15 +93,18 @@
 		console.log('logs refresh to', { allLogs });
 	}
 
-	showBalance = async () => {
+	async function showBalance() {
 		let pendingBalance = arlog.arweave.wallets.getBalance(ownerAddress);
 		let rB = await pendingBalance;
 		balance = rB;
-	};
+		if (testNet && balance < 1000) {
+			await testNet.airDrop(ownerAddress);
+			refresh();
+		}
+	}
 
 	async function createNewLog() {
-		console.log(KEYFILE[selectedNetwork]);
-		pendingContractDeployment = arlog.createNewLog(KEYFILE[selectedNetwork]);
+		pendingContractDeployment = arlog.createNewLog('use_wallet');
 		const contractDeployed = await pendingContractDeployment;
 		contractIDs = [...contractIDs, contractDeployed];
 		pendingContractDeployment = false;
@@ -145,39 +133,33 @@
 			<h2>
 				{selectedNetwork == DEV_NET ? '(Dev) ' : 'Live '}Keyfile: {ownerAddress} ({balance} winstons)
 			</h2>
-			{#if clearDB}
-				<button on:click={clearDB}>Delete</button>
-			{/if}
 			<br />
 		{:else}
 			<h2>Loading wallet...</h2>
 		{/if}
 
-		<h2>List all owner contracts (ownerAddress)</h2>
+		<h2>List all owner contracts ({ownerAddress})</h2>
 		{#if allLogs && allLogs.edges && allLogs.edges.length > 0}
 			{#each allLogs.edges as { node }}
 				<li>
-					Contract Initial State:<a href="http://localhost:1984/{node.id}/" target="_blank"
-						>⭷{node.id}</a
+					Contract Initial State:<a
+						href="http://localhost:1984/{node.id}/"
+						target="_blank"
+						rel="external">⭷{node.id}</a
 					><br />View user data:<a href="/user/{node.id}/">⭷{node.id}</a><br />
 				</li>
 				<br />
 				Contract Final State (rendered in browser):
 				<ReadContract contractID={node.id} {arlog} /><br />
-				<UpdateLog
-					contractID={node.id}
-					{arlog}
-					keyfile={KEYFILE[selectedNetwork]}
-					on:updated={refresh}
-				/>
+				<UpdateLog contractID={node.id} {arlog} keyfile={'use_wallet'} on:updated={refresh} />
 			{/each}
-		{:else if !pendingContractDeployment && KEYFILE[selectedNetwork]}
+		{:else if !pendingContractDeployment}
 			<button on:click={createNewLog}>No logs. Create one?</button>
 		{:else}
 			Creating your Log on the blockchain...
 		{/if}
 	{:else}
-		<p>Loading Arlog...</p>
+		<p>Log Loading Arlog...</p>
 	{/if}
 
 	<!-- {#if log} -->

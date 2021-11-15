@@ -1,6 +1,6 @@
 # ArLog 🆁🌲
 
-Append only log of data in Arweave. 
+Append only log of data in Arweave.
 
 Deploy with ArLog if you want to update your website in the future.
 
@@ -13,7 +13,7 @@ Under the hood, ArLog takes your data (root CID), sends the CID to the smart con
 - [Background](#background)
 - [Install](#install)
 - [Usage](#usage)
-	- [Demo](#demo)
+  - [Demo](#demo)
 - [API](#api)
 - [Contributing](#contributing)
 - [License](#license)
@@ -32,7 +32,7 @@ ArLog solves this problem by making the LINK permanent (and persistent) and that
 ## ArLog Deploy Protocol: How it Works
 
 1. ArLog takes your first deployment and creates a contractID
-2. Arlog deploy --wrapper embeds this contract ID in an HTML Wrapper. Otherwise go to FQDN/contractID to get the latest values  
+2. Arlog deploy --wrapper embeds this contract ID in an HTML Wrapper. Otherwise go to FQDN/contractID to get the latest values
 3. ArLog looks up the latest IPFS value if it exists/loads, then falls back to the ArWeave Tx
 4. The data is then displayed if it is HTML
 
@@ -44,7 +44,7 @@ npm install github:@douganderson444/arlog
 
 ## Usage
 
-Most of the time this log will be hard coded into a program somewhere, a program designed to fetch the latest CID from the SmartWeave Contract using the given ContractID (Transaction ID for the saved contract state). So you need functions that: 
+Most of the time this log will be hard coded into a program somewhere, a program designed to fetch the latest CID from the SmartWeave Contract using the given ContractID (Transaction ID for the saved contract state). So you need functions that:
 
 1. List all owner contracts, (ownerAddress)
 2. Reads a contract (contractID)
@@ -56,11 +56,11 @@ Most of the time this log will be hard coded into a program somewhere, a program
 // CREATE
 import Arlog from '@douganderson444/arlog';
 
-// you'll need an arweave instance, and a wallet 
+// you'll need an arweave instance, and a wallet
 let arweaveClientInstance = Arweave.init(config);
 
 // use the arlog instance to load namespaces for any owner
-const arlog = new Arlog(arweaveClientInstance); 
+const arlog = new Arlog(arweaveClientInstance);
 
 // list all the logs for this owner
 const allLogs = await arlog.list(ownerAddress)
@@ -92,7 +92,6 @@ npm run dev
 
 Makes a new log using your arweave instance.
 
-
 #### `latestEntry = await log.read(ownerAddress: string)`
 
 Fetches log entries for this owner's Arweave address (keyfile Public Key). Returns the latest state of all logs, unless a namespace is specified, then only returns that one.
@@ -102,7 +101,6 @@ Fetches log entries for this owner's Arweave address (keyfile Public Key). Retur
 Returns a contractID for the newly created and deployed owner keyfile
 
 #### `const { result, state } = await arlog.write(ownerKeyfile, contractID, input, { tags = [], target = null, winstonQty = null })`
-
 
 ## Contract
 
@@ -118,7 +116,19 @@ Small note: If editing the Readme, please conform to the [standard-readme](https
 
 ### Dev Notes
 
-In order to develop, you'll need to run testweave-docker on your local machine. Be sure to `docker system prune` if you run into issues when trying to mine locally.
+In order to develop, you'll need to run [testweave-docker](https://github.com/ArweaveTeam/testweave-docker) on your local machine.
+
+```cli
+docker-compose up
+```
+
+or
+
+```cli
+docker compose up
+```
+
+Be sure to `docker system prune` if you run into issues when trying to mine locally.
 
 ## License
 

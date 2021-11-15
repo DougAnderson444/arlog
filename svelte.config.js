@@ -22,7 +22,13 @@ const config = {
 					// Required to be specified
 					include: '**/append.js'
 				})
-			]
+			],
+			server: {
+				fs: {
+					// Allow serving files from levels up to the project root
+					allow: ['../../../']
+				}
+			}
 		}
 	}
 };

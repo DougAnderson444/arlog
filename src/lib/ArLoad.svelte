@@ -127,7 +127,7 @@
 			<h2>Loading wallet...</h2>
 		{/if}
 	{:else}
-		<p>Loading Arlog...</p>
+		<p>ArLoading Arlog...</p>
 	{/if}
 </div>
 

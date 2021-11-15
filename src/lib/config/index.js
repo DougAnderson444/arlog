@@ -35,13 +35,18 @@ export class TestNet {
 		const TestWeaveSDK = await import('testweave-sdk');
 		try {
 			this.testWeave = await TestWeaveSDK.init(this.arweave); // TODO default import issue?
-		} catch (error) {}
+		} catch (error) {
+			console.warn(error);
+		}
 		try {
 			this.testWeave = await TestWeaveSDK.default.init(this.arweave); // TODO default import issue?
-		} catch (error) {}
+		} catch (error) {
+			console.warn(error);
+		}
 	};
 
 	getTestKeyfile = async () => {
+		console.log('getTestKeyfile');
 		if (!this.testWeave) await init();
 
 		// init TestWeaveSDK on the top of arweave
@@ -49,12 +54,19 @@ export class TestNet {
 
 		this.keyfile = await this.arweave.wallets.generate();
 		const generatedAddr = await this.arweave.wallets.getAddress(this.keyfile);
-		console.log(`AirDrop for ${generatedAddr}`);
-		await this.testWeave.drop(generatedAddr, '123456789012');
-		const generatedAddressBalance = await this.arweave.wallets.getBalance(generatedAddr); // returns 10000
-		await this.testWeave.mine();
-		console.log({ generatedAddressBalance });
+
+		await airDrop(generatedAddr);
+
 		return this.keyfile;
+	};
+
+	airDrop = async (address, amt = '123456789012') => {
+		console.log(`AirDrop ${amt} to ${address}`);
+		const result = await this.testWeave.drop(address, amt);
+		console.log(`AirDrop result ${result}`);
+		const balance = await this.arweave.wallets.getBalance(address); // returns 10000
+		await this.testWeave.mine();
+		console.log({ balance });
 	};
 
 	doMining = async (contractID = '') => {
@@ -69,8 +81,8 @@ export class TestNet {
 		try {
 			console.log('Mining...');
 			await this.testWeave.mine(); // mine the contract
-			await this.testWeave.drop(generatedAddr, '69');
-			await this.testWeave.mine(); // mine the contract
+			// await this.testWeave.drop(generatedAddr, '6969');
+			// await this.testWeave.mine(); // mine the contract
 			console.log('Mined!');
 		} catch (error) {
 			console.error(error);

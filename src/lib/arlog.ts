@@ -2,8 +2,7 @@ import Arweave from 'arweave';
 import { readContract, interactWrite, interactWriteDryRun } from 'smartweave';
 import { CONTRACT_ID, APP_WALLET, MAX_REQUEST } from '$lib/utils/constants';
 
-import { SmartWeaveWebFactory, LoggerFactory } from "redstone-smartweave";
-
+import { SmartWeaveWebFactory, LoggerFactory } from 'redstone-smartweave';
 
 let arweave;
 
@@ -30,16 +29,18 @@ interface ReqVariables {
 
 export default class Arlog {
 	constructor(arweave) {
+		console.log('Constructing ArLog');
 		this.arweave = arweave;
 		this.smartweave = SmartWeaveWebFactory.memCached(arweave);
+		console.log('ArLog Constructed');
 	}
 
 	async read(contractID) {
 		return await readContract(this.arweave, contractID);
 	}
 
-	async createNewLog(ownerKeyfile, opts = {}) {
-		return await this.deployContract(ownerKeyfile, opts);
+	async createNewLog(payerWallet, opts = {}) {
+		return await this.deployContract(payerWallet, opts);
 	}
 
 	pickNameFromList(contractStates, namespace) {
@@ -48,11 +49,11 @@ export default class Arlog {
 		return contractState;
 	}
 
-	async write(ownerKeyfile, contractID, input, opts = {}) {
+	async write(payerWallet, contractID, input, opts = {}) {
 		const { tags = [], target = null, winstonQty = null } = opts;
 		let txid = await interactWrite(
 			this.arweave,
-			ownerKeyfile,
+			payerWallet,
 			contractID,
 			input,
 			tags,

@@ -4,17 +4,31 @@
 
 <script lang="ts">
 	import Arlog from '$lib/Arlog.svelte';
+	import Portal from '../../../iframe-wallet/src/lib/Portal.svelte';
+
+	import { onMount } from 'svelte';
+
+	let portal;
+
+	let mounted;
+	onMount(() => {
+		mounted = true;
+	});
 </script>
 
 <svelte:head>
 	<title>Home</title>
 </svelte:head>
 
-<section>
-	<h1>Arlog Demo</h1>
+<!-- can go anywhere, its fixed position in upper right hand corner -->
+<Portal bind:portal />
 
-	<Arlog />
-</section>
+{#if portal}
+	<section>
+		<h1>Arlog Demo</h1>
+		<Arlog {portal} />
+	</section>
+{/if}
 
 <style>
 	section {

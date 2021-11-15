@@ -39,11 +39,11 @@
 <Header />
 <main>
 	{#if mounted}
-		<ArLoad bind:loaded />
+		<!-- <ArLoad bind:loaded /> -->
 		<!-- Otherwise the child components mount first, and there's no way to easily pass down -->
-		{#if loaded}
-			<slot />
-		{/if}
+		<!-- {#if loaded} -->
+		<slot />
+		<!-- {/if} -->
 	{/if}
 </main>
 
