@@ -1,17 +1,20 @@
 <script>
 	import { onMount, createEventDispatcher } from 'svelte';
+	import { arlog } from '$lib/stores.js';
+
 	export let contractID;
-	export let arlog;
 	export let keyfile;
 
 	const dispatch = createEventDispatcher();
 
 	let display = '';
-	let value = 'Enter new value here';
+	let value;
+	let placeholder = 'Enter new value here';
 
 	onMount(() => {});
 
 	async function update() {
+		if (!value) return;
 		let latest = {};
 		latest['ipfs'] = value;
 		latest['arweave'] = value;
@@ -20,10 +23,22 @@
 			latest
 		};
 
-		const txid = await arlog.write(keyfile, contractID, input);
+		const txid = await $arlog.write(keyfile, contractID, input);
 		console.log({ txid });
 		dispatch('updated', txid);
 	}
 </script>
 
-<input bind:value on:submit={update} /><button on:click={update}>Update</button>
+<div>
+	<input bind:value on:submit={update} {placeholder} /><button on:click={update}>Update</button>
+</div>
+
+<style>
+	div {
+		margin: 0.25em;
+		padding: 0.25em;
+	}
+	input {
+		width: fit-content;
+	}
+</style>

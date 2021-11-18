@@ -100,7 +100,9 @@ Fetches log entries for this owner's Arweave address (keyfile Public Key). Retur
 
 Returns a contractID for the newly created and deployed owner keyfile
 
-#### `const { result, state } = await arlog.write(ownerKeyfile, contractID, input, { tags = [], target = null, winstonQty = null })`
+#### `const { result, state } = await arlog.write(ownerKeyfile | "use_wallet", contractID: string, input: object, { tags = [], target = null, winstonQty = null })`
+
+Writes the `input` object to an existings ArLog identified by `contractID`
 
 ## Contract
 

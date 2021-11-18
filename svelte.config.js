@@ -1,6 +1,7 @@
 import preprocess from 'svelte-preprocess';
 import { string as moduleToString } from 'rollup-plugin-string';
 import adapter_ipfs from 'sveltejs-adapter-ipfs';
+import mm from 'micromatch';
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -13,6 +14,15 @@ const config = {
 			removeBuiltInServiceWorkerRegistration: true,
 			injectPagesInServiceWorker: true
 		}),
+		// for building the library so others can import it
+		package: {
+			dir: 'dist',
+			exports: (filepath) => {
+				if (filepath.endsWith('.d.ts')) return false;
+				return mm.isMatch(filepath, ['!**/_*', '!**/internal/**']);
+			},
+			files: mm.matcher('!**/build.*')
+		},
 
 		// hydrate the <div id="svelte"> element in src/app.html
 		target: '#svelte',
