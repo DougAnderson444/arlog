@@ -1,8 +1,8 @@
 {
 	"name": "@douganderson444/arlog",
 	"version": "0.2.1",
-	"module": "dist",
-	"main": "dist",
+	"module": "dist/arlog",
+	"main": "dist/arlog",
 	"scripts": {
 		"dev": "svelte-kit dev --port=34779",
 		"build": "svelte-kit build",
