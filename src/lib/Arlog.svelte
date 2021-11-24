@@ -70,7 +70,8 @@
 		<h2>All ArLogs owned by ({ownerAddress})</h2>
 		{#if allLogs && allLogs.edges && allLogs.edges.length > 0}
 			{#each allLogs.edges as { node }}
-				<li><a href="/{node.id}/">⭷ {node.id}</a></li>
+				<li>Read: <a href="/read/{node.id}/">⭷ {node.id}</a></li>
+				<li>Read-Write: <a href="/readwrite/{node.id}/">⭷ {node.id}</a></li>
 			{/each}
 		{:else if !pendingContractDeployment}
 			<button on:click={createNewLog}>No logs. Create one?</button>

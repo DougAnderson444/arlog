@@ -13,6 +13,7 @@
 		mounted = true;
 	});
 </script>
+
 <Portal bind:portal={$portal} />
 
 <Header />

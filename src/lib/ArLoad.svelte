@@ -20,8 +20,7 @@
 				$selectedNetwork || (dev ? config.networks.DEV_NET.name : config.networks.MAIN_NET.name);
 
 			$arlog = new Arlog({
-				arweave: config.networks[$selectedNetwork],
-				smartweave: { selectedNetwork: $selectedNetwork }
+				arweave: config.networks[$selectedNetwork]
 			});
 		};
 

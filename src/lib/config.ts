@@ -1,24 +1,31 @@
-import { get } from 'svelte/store';
-import { arlog } from '$lib/stores.js';
-var testweave;
-
-const init = async () => {
-	// init TestWeaveSDK on the top of arweave
+async function init(arlog) {
 	const TestWeaveSDK = await import('testweave-sdk');
+	// console.log({ TestWeaveSDK });
+	// {
+	//   TestWeaveSDK: [Module: null prototype] {
+	//     __esModule: true,
+	//     default: { default: [Function] }
+	//   }
+	// }
+	let testWeave;
 	try {
-		testWeave = await TestWeaveSDK.init(get(arlog).arweave); // TODO default import issue?
+		testWeave = await TestWeaveSDK.init(arlog.arweave); // TODO default import issue?
 	} catch (error) {
-		console.warn(error);
+		// console.warn(error);
+		try {
+			testWeave = await TestWeaveSDK.default.init(arlog.arweave); // TODO default import issue?
+		} catch (error) {
+			// console.warn(error);
+			try {
+				testWeave = await TestWeaveSDK.default.default.init(arlog.arweave); // TODO default import issue?
+			} catch (error) {
+				console.warn(error);
+			}
+		}
 	}
-	try {
-		testWeave = await TestWeaveSDK.default.init(get(arlog).arweave); // TODO default import issue?
-	} catch (error) {
-		console.warn(error);
-	}
-};
-let loading;
-if (get(arlog)) loading = init();
 
+	return testWeave;
+}
 export default {
 	networks: {
 		DEV_NET: {
@@ -40,9 +47,15 @@ export default {
 			timeout: 20000,
 			logging: false,
 			name: 'LOCAL_TEST_NET',
-			mine: async () => {
-				await loading;
+			mine: async (arlog) => {
+				console.log('Mining...');
+				const testWeave = await init(arlog);
 				await testWeave.mine();
+				console.log('Mined!');
+			},
+			drop: async (arlog, address, amt = '1234567890123') => {
+				const testWeave = await init(arlog);
+				return await testWeave.drop(address, amt);
 			}
 		},
 

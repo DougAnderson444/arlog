@@ -11,6 +11,9 @@
 
 <svelte:head>
 	<title>Home</title>
+	<script>
+		global = globalThis; // for solana web3 repo
+	</script>
 </svelte:head>
 
 <section>

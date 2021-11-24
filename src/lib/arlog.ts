@@ -10,12 +10,16 @@ export default class Arlog {
 	constructor(config) {
 		this.config = config;
 		this.arweave = Arweave.init(config.arweave);
-		this.smartweave = new SmartweaveFactory({ ...config.smartweave, arweave: this.arweave });
+		this.smartweave = new SmartweaveFactory(config); // not really needed
 	}
 
 	async read(contractID) {
-		const state = await this.smartweave.read(contractID);
-		return state;
+		try {
+			const state = await readContract(this.arweave, contractID);
+			return state;
+		} catch (error) {
+			return new Error('Read failed');
+		}
 	}
 
 	async doMining() {
@@ -25,7 +29,7 @@ export default class Arlog {
 		// config.mine()
 		const network = config.networks[get(selectedNetwork)];
 		console.log(`Mining on`, { network });
-		await network.mine();
+		await network.mine(this);
 	}
 
 	async createNewLog(payerWallet, opts = {}) {
@@ -70,7 +74,8 @@ export default class Arlog {
 			latest = {
 				ipfs: 'QmWB4HTz8G9RQeNumjFqHeHD7ziVkC3bfxWe37oEE75LZv',
 				arweave: 'generated Arweave Tx Id for the data'
-			}
+			},
+			source = false
 		}
 	) {
 		const { deploy } = await import('$lib/contract/deploy.js');
@@ -83,14 +88,14 @@ export default class Arlog {
 				owner,
 				latest
 			},
-			smartweave: this.smartweave
+			source
 		}); // generate a contractID
 		console.log('contractID deployed', { contractID });
 
 		const after = await this.arweave.transactions.getStatus(contractID);
-		console.log({ after }); // this will return 202
 
-		if (after.status !== 202) return new Error('error, contract not deployed'); // TODO: handle better
+		if (after.status !== 200 && after.status !== 202)
+			return new Error('error, contract not deployed'); // TODO: handle better
 
 		return contractID;
 	}

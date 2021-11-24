@@ -17,6 +17,7 @@
 	export async function showLog() {
 		// Show single latest Tx
 		let state = await $arlog.read(contractID);
+		console.log('Reading', { state });
 		name = state.name;
 		latest = { ipfs: state.latest.ipfs, arweave: state.latest.arweave };
 		display = state;
