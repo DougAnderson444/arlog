@@ -1,0 +1,50 @@
+{
+  "name": "@douganderson444/arlog",
+  "version": "0.2.0",
+  "module": "dist",
+  "devDependencies": {
+    "@sveltejs/kit": "next",
+    "@types/cookie": "^0.4.1",
+    "micromatch": "^4.0.4",
+    "prettier": "^2.4.1",
+    "prettier-plugin-svelte": "^2.4.0",
+    "rollup-plugin-string": "^3.0.0",
+    "svelte": "^3.34.0",
+    "svelte-check": "^2.2.6",
+    "svelte-preprocess": "^4.9.4",
+    "svelte2tsx": "^0.4.10",
+    "sveltejs-adapter-ipfs": "^0.1.10",
+    "testweave-sdk": "^0.2.2",
+    "tslib": "^2.3.1",
+    "typescript": "^4.4.3"
+  },
+  "type": "module",
+  "dependencies": {
+    "@fontsource/fira-mono": "^4.5.0",
+    "@lukeed/uuid": "^2.0.0",
+    "arweave": "^1.10.18",
+    "buffer": "^5.7.1",
+    "cookie": "^0.4.1",
+    "esbuild": "^0.13.15",
+    "immortal-db": "^1.1.0",
+    "ipfs-core": "^0.12.1",
+    "process": "^0.11.10",
+    "smartweave": "^0.4.46"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    "./ArLoad.svelte": "./ArLoad.svelte",
+    "./Arlog.svelte": "./Arlog.svelte",
+    "./arlog": "./arlog.js",
+    "./config": "./config.js",
+    "./contract/append": "./contract/append.js",
+    "./contract/deploy": "./contract/deploy.js",
+    "./contract/initial-state.json": "./contract/initial-state.json",
+    "./header/Header.svelte": "./header/Header.svelte",
+    "./header/svelte-logo.svg": "./header/svelte-logo.svg",
+    "./ReadContract.svelte": "./ReadContract.svelte",
+    "./smartweave": "./smartweave.js",
+    "./stores": "./stores.js",
+    "./UpdateLog.svelte": "./UpdateLog.svelte"
+  }
+}
