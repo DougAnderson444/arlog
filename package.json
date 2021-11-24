@@ -2,7 +2,7 @@
 	"name": "@douganderson444/arlog",
 	"version": "0.2.1",
 	"module": "dist",
-	"main": "dst",
+	"main": "dist",
 	"scripts": {
 		"dev": "svelte-kit dev --port=34779",
 		"build": "svelte-kit build",
